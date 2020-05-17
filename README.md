@@ -17,10 +17,12 @@ modifytime - optional timestamp for the changetime entry in the lbr header
 
 times if omitted take the information from the source file, except for the lbr file which will use the latest source timestamp
 if specified times are either
--      time info is set to 0
+
+\-      time info is set to 0
+
 yyyy-mm-dd hh:mm:ss - time is set to the specified time
 
-trailing but not intermediate question marks can be omitted, alwo whitespace around the question marks is ignored. 
+trailing but not intermediate question marks can be omitted, also whitespace around the question marks is ignored. 
 Note for unix, it does mean source paths including ? will not work.
 
 blank lines or lines beginning with space or # are ignored, so can be used for comments
