@@ -113,6 +113,7 @@ time_t parseTimeStamp(const char *s) {
         tbuf.tm_year -= 1900;
         return mktime(&tbuf);
     }
+    fprintf(stderr, "Warning: invalid timestamp information %s\n", s);
     return -1;
 }
 
@@ -222,20 +223,27 @@ void setDate(uint8_t *d, time_t tval) {
 void initHdr() {
     uint16_t index = 0;
     uint16_t largest = 0;
-    uint32_t ctime = 0, mtime = 0;
     entries = ((cnt + 3) & ~3);
     items[0].fileSize = entries * DIRSIZE;
     items[0].secCnt = entries * DIRSIZE / 128;
+
+    time_t now;
+    time(&now);
 
     if (items[0].ctime < 0) {
         for (int i = 1; i < cnt; i++)
             if (items[0].ctime < items[i].ctime)
                 items[0].ctime = items[i].ctime;
+        if (items[0].ctime < 0)
+            items[0].ctime = now;
     }
     if (items[0].mtime < 0) {
         for (int i = 1; i < cnt; i++)
             if (items[0].mtime < items[i].mtime)
                 items[0].mtime = items[i].mtime;
+        if (items[0].mtime < 0)
+            items[0].mtime = now;
+
     }
 
     hdr = calloc(entries, DIRSIZE);
@@ -243,11 +251,7 @@ void initHdr() {
         hdr[i * DIRSIZE + Status] = 0;
         setName(i);
         setDate(&hdr[i * DIRSIZE + CreateDate], items[i].ctime);
-        if (items[i].ctime > ctime)
-            ctime = items[i].ctime;
         setDate(&hdr[i * DIRSIZE + ChangeDate], items[i].mtime);
-        if (items[i].mtime > mtime)
-            mtime = items[i].mtime;
         hdr[i * DIRSIZE + Index] = index & 0xff;
         hdr[i * DIRSIZE + Index + 1] = index >> 8;
         hdr[i * DIRSIZE + Length] = items[i].secCnt & 0xff;
@@ -319,7 +323,20 @@ void buildLbr() {
 
 int main(int argc, char **argv) {
     if (argc != 2) {
-        fprintf(stderr, "Usage: mklbr recipefile\n");
+        fprintf(stderr,
+            "Usage: mklbr recipefile\n"
+            "Recipe file format:\n"
+            "  sourcefile [?[lbrname] [?[createtime] [?[modifytime]]]]\n"
+            "\n"
+            "If lbrname is omitted then filename part of sourcefile is used\n"
+            "the name will be converted to uppercase\n"
+            "\n"
+            "Time information is either - (setting lbr time to 0) or yyyy-mm-dd hh:mm:ss\n"
+            "if time information is missing the time information from the source file is used\n"
+            "\n"
+            "Note the first source file should be the name of the lbr file to create\n"
+            "in this case when time information is missing the max timestamps from the source files is used\n"
+            "A default of now is used if all timestamps are set to 0 and lbr is not explicitly set\n");
         exit(1);
     }
     loadRecipe(argv[1]);
