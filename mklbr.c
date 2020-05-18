@@ -32,8 +32,8 @@ typedef struct {
     const char *name;
     size_t fileSize;
     uint16_t secCnt;
-    uint32_t ctime;
-    uint32_t mtime;
+    time_t ctime;           // times are stored in utc format
+    time_t mtime;
 
 } item_t;
 
@@ -63,33 +63,11 @@ uint16_t calcCrc(uint8_t *buf, int len) {
     return crc;
 }
 
-// as far as I can tell lbr stores date in local time format
-// tval here is in utc so adjust to local time first
-uint32_t time2Lbr(time_t tval) {
-    // adjust tval to reflect localtime vs. UTC
-    struct tm *timestamp = gmtime(&tval);           // get raw utc time
-    int yday = timestamp->tm_yday;                  // and the relevant day
-    timestamp = localtime(&tval);                   // the time in local time
-
-    uint32_t d = tval / 86400 - CPMDAY0;            //  adjust for CP/M day 0
-    d += (timestamp->tm_yday - yday);               // update day if local time is day before/after gmt
-    return (d << 16) + (timestamp->tm_hour << 11) + (timestamp->tm_min << 5) + timestamp->tm_sec / 2;
-}
 
 
-// set modify and access times convert lbr time to windows/unix time
-// compensate for localtime shift
-void setFileTime(char const *path, uint32_t lftime) {
-    uint16_t d = (lftime >> 16) + CPMDAY0;
-    int32_t t = ((lftime >> 11) % 32) * 3600 + ((lftime >> 5) % 64) * 60 + (lftime % 32 * 2);
-    time_t ftime = d * 86400 + t;
-    struct tm *timestamp = gmtime(&ftime);
-    int yday = timestamp->tm_yday;
-    timestamp = localtime(&ftime);
-    d -= (timestamp->tm_yday - yday);
-    ftime = d * 86400 + 2 * t - (timestamp->tm_hour * 3600 + timestamp->tm_min * 60 + timestamp->tm_sec);
 
-
+// set modify and access times
+void setFileTime(char const *path, time_t ftime) {
     struct utimbuf times = { ftime, ftime };
     utime(path, &times);
 
@@ -123,19 +101,19 @@ const char *parseToken(char **line) {
     return token;
 }
 
-uint32_t parseTimeStamp(const char *s) {
+time_t parseTimeStamp(const char *s) {
     struct tm tbuf;
     if (!*s)
-        return ~0;
+        return -1;
     if (*s == '-')
         return 0;
     
     if (sscanf(s, "%4d-%2d-%2d %2d:%2d:%2d", &tbuf.tm_year, &tbuf.tm_mon, &tbuf.tm_mday, &tbuf.tm_hour, &tbuf.tm_min, &tbuf.tm_sec) == 6) {
         tbuf.tm_mon--;
         tbuf.tm_year -= 1900;
-        return time2Lbr(mktime(&tbuf));
+        return mktime(&tbuf);
     }
-    return ~0;
+    return -1;
 }
 
 
@@ -150,7 +128,7 @@ void addItem(char *line) {
         return;
     }
     if (cnt == 0)                  // first item is library name which may not be found
-        items[cnt].ctime = items[cnt].mtime = ~0;        // sentinal for auto fill
+        items[cnt].ctime = items[cnt].mtime = -1;        // sentinal for auto fill
     else {
         struct stat stbuf;
         if (stat(s, &stbuf) != 0) {
@@ -159,8 +137,8 @@ void addItem(char *line) {
         } else {
             items[cnt].fileSize = stbuf.st_size;
             items[cnt].secCnt = (items[cnt].fileSize + 127) / 128;
-            items[cnt].ctime = time2Lbr(stbuf.st_ctime);          // set default timestamps
-            items[cnt].mtime = time2Lbr(stbuf.st_mtime);
+            items[cnt].ctime = stbuf.st_ctime;          // set default timestamps
+            items[cnt].mtime = stbuf.st_mtime;
         }
     }
     items[cnt].loc = strdup(s);
@@ -176,11 +154,11 @@ void addItem(char *line) {
     }
     items[cnt].name = strdup(s);
 
-    uint32_t timestamp = parseTimeStamp(parseToken(&line));
-    if (timestamp != ~0)
+    time_t timestamp = parseTimeStamp(parseToken(&line));
+    if (timestamp >= 0)
         items[cnt].ctime = timestamp;
     timestamp = parseTimeStamp(parseToken(&line));
-    if (timestamp != ~0)
+    if (timestamp >= 0)
         items[cnt].mtime = timestamp;
     cnt++;
 }
@@ -224,11 +202,21 @@ void setName(int i) {
 
 }
 
-void setDate(uint8_t *d, uint32_t timestamp) {
-    d[0] = (timestamp >> 16) % 256;
-    d[1] = timestamp >> 24;
-    d[4] = timestamp % 256;
-    d[5] = (timestamp >> 8) % 256;
+void setDate(uint8_t *d, time_t tval) {
+    // as far as I can tell lbr stores date in local time format
+    // tval here is in utc so adjust to local time first
+    struct tm *timestamp = gmtime(&tval);      // get raw utc time
+    int yday = timestamp->tm_yday;                  // and the relevant day
+    timestamp = localtime(&tval);              // the time in local time
+
+    uint16_t lbrDay = tval / 86400 - CPMDAY0 + (timestamp->tm_yday - yday);            //  adjust for CP/M day 0 and local time day
+    uint16_t lbrTime = (timestamp->tm_hour << 11) + (timestamp->tm_min << 5) + timestamp->tm_sec / 2;
+
+    // note lbr day and time are split
+    d[0] = lbrDay % 256;
+    d[1] = lbrDay / 256;
+    d[4] = lbrTime % 256;
+    d[5] = lbrTime / 256;
 }
 
 void initHdr() {
@@ -239,14 +227,12 @@ void initHdr() {
     items[0].fileSize = entries * DIRSIZE;
     items[0].secCnt = entries * DIRSIZE / 128;
 
-    if (items[0].ctime == ~0) {
-        items[0].ctime = 0;
+    if (items[0].ctime < 0) {
         for (int i = 1; i < cnt; i++)
             if (items[0].ctime < items[i].ctime)
                 items[0].ctime = items[i].ctime;
     }
-    if (items[0].mtime == ~0) {
-        items[0].mtime = 0;
+    if (items[0].mtime < 0) {
         for (int i = 1; i < cnt; i++)
             if (items[0].mtime < items[i].mtime)
                 items[0].mtime = items[i].mtime;
