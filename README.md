@@ -1,30 +1,32 @@
 # mklbr
 Make LBR file from recipe
 
+```
 Usage: mklbr recipefile
 
-Where recipefile contains the name of the lbr file to create and has a line for each file to be included
-Lines have the format
+The recipe file contians one or more lines of the form
+  sourcefile [?[lbrname] [?[createtime] [?[modifytime]]]]
+Blank lines or lines beginning with space or # are ignored, so can be used for comments
 
-source?name?createtime?modifytime
+The first recipe line is used to specify the name of the lbr file to create
 
-where
-source is the path to the source file to include, or in the case of the first line the name of the lbr file to be created
-name   is optional and is the name of the file in the library. If omitted the file name part of source is used. The name is stored
-       in upper case
-createtime - optional timestamp for the createtime entry in the lbr header
-modifytime - optional timestamp for the changetime entry in the lbr header
+Notes:
+If lbrname is omitted then filename part of sourcefile is used the name will be converted to uppercase
+Time information can be one of
+	yyyy-mm-dd hh:mm:ss	explicitly sets the time field
+	-					sets the lbr time field to 0
+	missing				uses the source file timestamp
+As a special case for the first line which specifies the lbr name, if time field is missing the max timestamp from the source files is used, unless all timestamps are 0, in which case the current time is used.
 
-times if omitted take the information from the source file, except for the lbr file which will use the latest source timestamp
-if specified times are either
+The use of ? as separators means that the ? cannot be part of a filename.
+```
 
-\-      time info is set to 0
+For windows a visual studio solution file is included, however you may need to retarget the project to your version of visual studio.
 
-yyyy-mm-dd hh:mm:ss - time is set to the specified time
+If you are using gcc then the utility can be compiled using
 
-trailing but not intermediate question marks can be omitted, also whitespace around the question marks is ignored. 
-Note for unix, it does mean source paths including ? will not work.
+gcc -omklbr -O3 mklbr.c
 
-blank lines or lines beginning with space or # are ignored, so can be used for comments
+Mark Ogden
 
-Mark
+9-Feb-2022
