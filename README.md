@@ -1,24 +1,33 @@
 # mklbr
 Make LBR file from recipe
 
+Note the recipe format has changed significantly and is now much simpler. The individual recipe lines can also now be used on the command line.
+
 ```
-Usage: mklbr recipefile
+Usage: mklbr -v | -V | [-v] (recipefile | lbrfile files+)
+Where a single -v or -V shows version information
+Otherwise -v provides additional information on the created lbrfile
 
-The recipe file contians one or more lines of the form
-  sourcefile [?[lbrname] [?[createtime] [?[modifytime]]]]
-Blank lines or lines beginning with space or # are ignored, so can be used for comments
+The recipe file option makes it easier to handle multiple timestamps and CP/M file naming
+However lbrfile and files are recipes and can be quoted to include more than the sourcefile
+Each recipe has the following format
+  sourcefile [ '|' lbrname] [modifytime] [createtime]
 
-The first recipe line is used to specify the name of the lbr file to create
+If lbrname is omitted then filename part of sourcefile is used
+the name will be converted to uppercase
+The sourcefile can be surrounded by <> to allow embedded spaces, e.g. directory path
+However if there are embedded spaces in the filename part, lbrname must be specified
 
-Notes:
-If lbrname is omitted then filename part of sourcefile is used the name will be converted to uppercase
-Time information can be one of
-	yyyy-mm-dd hh:mm:ss	explicitly sets the time field
-	-					sets the lbr time field to 0
-	missing				uses the source file timestamp
-As a special case for the first line which specifies the lbr name, if time field is missing the max timestamp from the source files is used, unless all timestamps are 0, in which case the current time is used.
-
-The use of ? as separators means that the ? cannot be part of a filename.
+Time information is one of
+  yyyy-mm-dd hh:mm[:ss] -- explicitly set UTC time
+  -                     -- zero timestamps
+  *                     -- use file timestamps (default)
+If createtime is sepecified then modifytime has to be specified
+Additionally createtime is set to modifytime if it is later
+If this occurs when an explicit timestamp is used, a is warning issued
+Note the first source file should be the name of the lbr file to create
+in this case when time information is missing the max timestamps from the source files is used
+The current time is used if all timestamps are set to 0 and lbr is not explicitly set
 ```
 
 For windows a visual studio solution file is included, however you may need to retarget the project to your version of visual studio.
@@ -29,4 +38,4 @@ gcc -omklbr -O3 mklbr.c
 
 Mark Ogden
 
-9-Feb-2022
+10-Oct-2023
