@@ -469,37 +469,31 @@ int main(int argc, char **argv) {
         argc--, argv++;
         verbose = true;
     }
-    if (argc < 2) {
+    if (argc < 2 || argc == 2 && strcmp(argv[1], "-h") == 0) {
         fprintf(
             stderr,
-            "Usage: mklbr -v | -V | [-v] (recipefile | lbrfile files+)\n"
-            "Where a single -v or -V shows version information\n"
+            "Usage: mklbr -v | -V | -h | [-v] (lbrRecipe fileRecipe+ | recipefile)\n"
+            "A single -v or -V shows version information and -h shows this help\n"
             "Otherwise -v provides additional information on the created lbrfile\n"
-            "The recipe file option makes it easier to handle multiple timestamps and CP/M file "
-            "naming\n"
-            "However lbrfile and files are recipes and can be quoted to include more than the "
-            "sourcefile\n"
-            "Each recipe has the following format\n"
-            "  sourcefile [ '|' lbrname] [modifytime] [createtime]\n"
             "\n"
-            "If lbrname is omitted then filename part of sourcefile is used\n"
-            "the name will be converted to uppercase\n"
-            "The sourcefile can be surrounded by <> to allow embedded spaces, e.g. directory path\n"
-            "However if there are embedded spaces in the filename part, lbrname must be specified\n"
+            "The content of the .lbr file is determined by recipes of the format\n"
+            "  sourcefile [ '|' lbrname] [modifytime [createtime]]\n"
+            "\n"
+            "lbrname defaults the filename part of sourcefile, converted to uppercase\n"
+            "sourcefile can be surrounded by <> to allow embedded spaces, e.g. directory path\n"
+            "however if there are embedded spaces in the filename part, lbrname must be specified\n"
             "\n"
             "Time information is one of\n"
             "  yyyy-mm-dd hh:mm[:ss] -- explicitly set UTC time\n"
             "  -                     -- zero timestamps\n"
             "  *                     -- use file timestamps (default)\n"
-            "If createtime is sepecified then modifytime has to be specified\n"
-            "Additionally createtime is set to modifytime if it is later\n"
-            "If this occurs when an explicit timestamp is used, a is warning issued\n"
-            "Note the first source file should be the name of the lbr file to create\n"
-            "in this case when time information is missing the max timestamps from the source "
-            "files is used\n"
-            "The current time is used if all timestamps are set to 0 and lbr is not "
-            "explicitly set\n"
-            "\n");
+            "\n"
+            "The first recipe is taken as the name of the lbr file to create.\n"
+            "Its default timestamp is set to the newest source file or the current time.\n"
+            "\n"
+            "Complex recipes will require command line quoting, alternatively a recipefile,\n"
+            "containing a list of the recipes, one per line, can be used to avoid this\n"
+            );
         exit(1);
     }
     if (argc == 2)
