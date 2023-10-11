@@ -151,6 +151,9 @@
     <ClInclude Include="showVersion.h" />
     <ClInclude Include="_version.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="mklbr.sln.licenseheader" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

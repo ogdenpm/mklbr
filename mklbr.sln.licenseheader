@@ -1,7 +1,9 @@
+﻿extensions: designer.cs generated.cs
+extensions: .cs .cpp .h .c
 /* mklbr - create .lbr archives from recipes
  * Copyright (C) - 2020-2023 Mark Ogden
  *
- * appinfo.h - static version information
+ * %FileName% - 
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,6 +20,13 @@
  * Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#define APP_NAME "mklbr"
-#define APP_DESCRIPTION "Make lbr file based on a recipe file"
-#define APP_EMAIL       "support@mark-ogden.uk"
+extensions: .aspx .ascx
+<%-- 
+Copyright (c) 2020 Mark Ogden
+--%>
+extensions: .vb
+'Sample license text.
+extensions:  .xml .config .xsd
+<!--
+Sample license text.
+-->
