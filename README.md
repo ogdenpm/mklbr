@@ -34,8 +34,8 @@ For windows a visual studio solution file is included, however you may need to r
 
 If you are using gcc then the utility can be compiled using
 
-gcc -omklbr -O3 mklbr.c
+gcc -omklbr -O3 mklbr.c _version.c
 
 Mark Ogden
 
-10-Oct-2023
+10-Nov-2023
